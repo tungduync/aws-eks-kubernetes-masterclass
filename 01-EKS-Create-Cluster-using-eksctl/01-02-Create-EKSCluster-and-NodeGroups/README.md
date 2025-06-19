@@ -16,13 +16,22 @@
 - It will take 15 to 20 minutes to create the Cluster Control Plane 
 ```
 # Create Cluster
-eksctl create cluster --name=eksdemo1 \
+eksctl create cluster --name=duynct88 \
                       --region=ap-southeast-1 \
                       --zones=ap-southeast-1a,ap-southeast-1b \
                       --without-nodegroup 
 
 # Get List of clusters
 eksctl get cluster                  
+```
+I think you should create VPC first and then Create cluster this option.
+```
+eksctl create cluster \
+  --name duynct88 \
+  --region ap-southeast-1 \
+  --vpc-public-subnets=subnet-0e149387442107b40,subnet-0c854752abacb398b \
+  --without-nodegroup
+eksctl get cluster
 ```
 
 
@@ -40,37 +49,48 @@ eksctl utils associate-iam-oidc-provider \
 # Replace with region & cluster name
 eksctl utils associate-iam-oidc-provider \
     --region ap-southeast-1 \
-    --cluster eksdemo1 \
+    --cluster duynct88 \
     --approve
 ```
 
 
 
 ## Step-03: Create EC2 Keypair
-- Create a new EC2 Keypair with name as `kube-demo`
+- Create a new EC2 Keypair with name as `kube-duynct88`
 - This keypair we will use it when creating the EKS NodeGroup.
 - This will help us to login to the EKS Worker Nodes using Terminal.
 
 ## Step-04: Create Node Group with additional Add-Ons in Public Subnets
 - These add-ons will create the respective IAM policies for us automatically within our Node Group role.
+- Mặc định sẽ tạo worker node vào các subnet đã khai báo cho cluster. Tuy nhiên khi chạy tôi đã gặp lỗi:
+```
+2025-06-19 15:12:43 [✖]  found mis-configured or non-public subnets ["subnet-0ce2a476eb5dc209a" "subnet-0b5d65f020020f149"]. Expected public subnets with property "MapPublicIpOnLaunch" enabled. Without it new nodes won't get an IP assigned
+```
+- Bạn cần bật `MapPublicIpOnLaunch` nếu nhưng dùng public subnet. Để đảm bảo bảo mật thì nên chuyển qua dùng private subnet nhé.
+```bat
+aws ec2 modify-subnet-attribute --subnet-id subnet-0ce2a476eb5dc209a --map-public-ip-on-launch
+aws ec2 modify-subnet-attribute --subnet-id subnet-0b5d65f020020f149 --map-public-ip-on-launch
+```
  ```
 # Create Public Node Group   
-eksctl create nodegroup --cluster=eksdemo1 \
+eksctl create nodegroup --cluster=duynct88 \
                         --region=ap-southeast-1 \
-                        --name=eksdemo1-ng-public1 \
+                        --name=duynct88-ng-private1 \
                         --node-type=t3.medium \
                         --nodes=2 \
                         --nodes-min=2 \
                         --nodes-max=4 \
                         --node-volume-size=20 \
                         --ssh-access \
-                        --ssh-public-key=kube-demo \
+                        --ssh-public-key=kube-duynct88 \
                         --managed \
                         --asg-access \
                         --external-dns-access \
                         --full-ecr-access \
                         --appmesh-access \
-                        --alb-ingress-access 
+                        --alb-ingress-access
+                        --subnet-ids=subnet-0e149387442107b40,subnet-0c854752abacb398b \
+                        --node-private-networking 
 ```
 
 ## Step-05: Verify Cluster & Nodes
