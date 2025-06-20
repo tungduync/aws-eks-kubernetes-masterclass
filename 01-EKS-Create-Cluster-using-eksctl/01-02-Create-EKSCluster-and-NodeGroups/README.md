@@ -13,7 +13,8 @@
 
 
 ## Step-01: Create EKS Cluster using eksctl
-- It will take 15 to 20 minutes to create the Cluster Control Plane 
+- It will take 15 to 20 minutes to create the Cluster Control Plane
+- CAUSION: If u not assign subnet, auto create new VPC
 ```
 # Create Cluster
 eksctl create cluster --name=duynct88 \
@@ -71,8 +72,28 @@ eksctl utils associate-iam-oidc-provider \
 aws ec2 modify-subnet-attribute --subnet-id subnet-0ce2a476eb5dc209a --map-public-ip-on-launch
 aws ec2 modify-subnet-attribute --subnet-id subnet-0b5d65f020020f149 --map-public-ip-on-launch
 ```
+
  ```
 # Create Public Node Group   
+eksctl create nodegroup --cluster=duynct88 \
+                        --region=ap-southeast-1 \
+                        --name=duynct88-ng-public1 \
+                        --node-type=t3.medium \
+                        --nodes=2 \
+                        --nodes-min=2 \
+                        --nodes-max=4 \
+                        --node-volume-size=20 \
+                        --ssh-access \
+                        --ssh-public-key=kube-duynct88 \
+                        --managed \
+                        --asg-access \
+                        --external-dns-access \
+                        --full-ecr-access \
+                        --appmesh-access \
+                        --alb-ingress-access
+```
+ ```
+# Create Private Node Group   
 eksctl create nodegroup --cluster=duynct88 \
                         --region=ap-southeast-1 \
                         --name=duynct88-ng-private1 \
@@ -132,13 +153,13 @@ kubectl config view --minify
 - Verify Control Plane Stack & Events
 - Verify NodeGroup Stack & Events
 
-### Login to Worker Node using Keypai kube-demo
+### Login to Worker Node using Keypair kube-duynct88
 - Login to worker node
 ```
 # For MAC or Linux or Windows10
-ssh -i kube-demo.pem ec2-user@<Public-IP-of-Worker-Node>
+ssh -i kube-duynct88.pem ec2-user@<Public-IP-of-Worker-Node>
 
-# For Windows 7
+# For Windows 11
 Use putty
 ```
 
